@@ -28,7 +28,7 @@ char* encryption(char* message, char* key) {
     int key_count = 0;
     size_t msg_len = strlen(message);
     printf("the msglenght is %zu\n",msg_len);
-    char* result_buffer = malloc(msg_len + 1); 
+    char* result_buffer = malloc(msg_len + 2); 
     memset(result_buffer, '\0', msg_len + 1);
 
     char encrypt_array[] = {
@@ -59,7 +59,9 @@ char* encryption(char* message, char* key) {
         msg_count++;
         key_count++;
     }
-    result_buffer[msg_count] = '\0';
+    printf("the msgcount is %d\n",msg_count);
+    result_buffer[msg_count + 1] = '\n';
+    result_buffer[msg_count + 2] = '\0';
     return result_buffer;
 }
 
