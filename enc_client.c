@@ -153,15 +153,20 @@ int main(int argc, char *argv[]) {
         error("CLIENT: ERROR writing key to socket");
     }
 
-    // Receive ciphertext from server
+    char buffer[256];
     memset(buffer, '\0', sizeof(buffer));
-    charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
+
+    int charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
     if (charsRead < 0) {
         error("CLIENT: ERROR reading from socket");
     }
 
-   
+    // Make sure it's null-terminated exactly at charsRead
+    buffer[charsRead] = '\0';
+
+    // Print only what was received
     printf("%s", buffer);
+
 
     
     close(socketFD);
