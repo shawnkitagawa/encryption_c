@@ -164,7 +164,8 @@ int main(int argc, char *argv[]) {
     buffer[charsRead] = '\0';
 
     // Print only what was received
-    printf("%s", buffer);
+    printf("%.*s", (int)charsRead, buffer);
+
 
 
     
