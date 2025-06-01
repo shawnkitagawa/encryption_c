@@ -62,7 +62,7 @@ char* encryption(char* message, char* key) {
 }
 
 void handleClient(int connectionSocket) {
-    char keyBuffer[MAX_BUFFER_SIZE, msgBuffer[MAX_BUFFER_SIZE], encryptedBuffer[MAX_BUFFER_SIZE];
+    char keyBuffer[MAX_BUFFER_SIZE], msgBuffer[MAX_BUFFER_SIZE], encryptedBuffer[MAX_BUFFER_SIZE];
 
     memset(msgBuffer, '\0', MAX_BUFFER_SIZE);
     memset(keyBuffer, '\0', MAX_BUFFER_SIZE);
