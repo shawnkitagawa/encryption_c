@@ -85,19 +85,35 @@ void handleClient(int connectionSocket) {
         error("SERVER: ERROR sending handshake response");
     }
 
-    // 3. Receive message and key
-    if (recv(connectionSocket, msgBuffer, 255, 0) < 0)
-        error("SERVER: ERROR reading message");
+    // // 3. Receive message and key
+    // if (recv(connectionSocket, msgBuffer, 255, 0) < 0)
+    //     error("SERVER: ERROR reading message");
 
-    if (recv(connectionSocket, keyBuffer, 255, 0) < 0)
+    // if (recv(connectionSocket, keyBuffer, 255, 0) < 0)
+    //     error("SERVER: ERROR reading key");
+
+    int msgRead = recv(connectionSocket, msgBuffer, sizeof(msgBuffer) - 1, 0);
+    if (msgRead < 0)
+        error("SERVER: ERROR reading message");
+    msgBuffer[msgRead] = '\0'; // Null-terminate
+
+    int keyRead = recv(connectionSocket, keyBuffer, sizeof(keyBuffer) - 1, 0);
+    if (keyRead < 0)
         error("SERVER: ERROR reading key");
+    keyBuffer[keyRead] = '\0'; 
 
     // 4. Encrypt and send result
-    strcpy(encryptedBuffer, encryption(msgBuffer, keyBuffer));
-    strcat(encryptedBuffer, "\n");
+    // strcpy(encryptedBuffer, encryption(msgBuffer, keyBuffer));
+    // strcat(encryptedBuffer, "\n");
 
-    if (send(connectionSocket, encryptedBuffer, strlen(encryptedBuffer), 0) < 0)
-        error("SERVER: ERROR writing to socket");
+    // if (send(connectionSocket, encryptedBuffer, strlen(encryptedBuffer), 0) < 0)
+    //     error("SERVER: ERROR writing to socket");
+
+    char* encrypted = encryption(msgBuffer, keyBuffer);  // Returns a null-terminated string
+    int encryptedLength = strlen(encrypted);
+
+    if (send(connectionSocket, encrypted, encryptedLength, 0) < 0)
+    error("SERVER: ERROR writing to socket");
 
     close(connectionSocket);
 }
