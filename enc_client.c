@@ -153,10 +153,9 @@ int main(int argc, char *argv[]) {
         error("CLIENT: ERROR writing key to socket");
     }
 
-    char buffer[256];
     memset(buffer, '\0', sizeof(buffer));
 
-    int charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
+    charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
     if (charsRead < 0) {
         error("CLIENT: ERROR reading from socket");
     }
