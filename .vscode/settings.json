@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "fstream": "c"
+        "fstream": "c",
+        "socket.h": "c",
+        "ctype.h": "c"
     }
 }

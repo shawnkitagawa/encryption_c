@@ -36,7 +36,7 @@ char* encryption(char* message, char* key) {
 
     int arr_len = 27;
 
-    while (msg_count < strlen(message) - 1) {
+    while (msg_count < strlen(message)) {
         int total = 0;
         for (int i = 0; i < arr_len; i++) {
             if (encrypt_array[i] == message[msg_count]) {
@@ -65,27 +65,39 @@ void handleClient(int connectionSocket) {
     memset(keyBuffer, '\0', 256);
     memset(encryptedBuffer, '\0', 256);
 
-    // handshake check
+    // 1. Handshake check
     char handshake[16];
-    recv(connectionSocket, handshake, sizeof(handshake), 0);
+    memset(handshake, '\0', sizeof(handshake));
+
+    if (recv(connectionSocket, handshake, sizeof(handshake) - 1, 0) < 0) {
+        error("SERVER: ERROR reading handshake");
+    }
+
     if (strcmp(handshake, "enc_client") != 0) {
         fprintf(stderr, "SERVER: Rejected connection from unknown client\n");
         close(connectionSocket);
         exit(2);
     }
 
-    // receive message and key
+    // 2. Send handshake response
+    const char* handshakeResponse = "enc_server";
+    if (send(connectionSocket, handshakeResponse, strlen(handshakeResponse), 0) < 0) {
+        error("SERVER: ERROR sending handshake response");
+    }
+
+    // 3. Receive message and key
     if (recv(connectionSocket, msgBuffer, 255, 0) < 0)
-        error("ERROR reading message");
+        error("SERVER: ERROR reading message");
 
     if (recv(connectionSocket, keyBuffer, 255, 0) < 0)
-        error("ERROR reading key");
+        error("SERVER: ERROR reading key");
 
+    // 4. Encrypt and send result
     strcpy(encryptedBuffer, encryption(msgBuffer, keyBuffer));
     strcat(encryptedBuffer, "\n");
 
     if (send(connectionSocket, encryptedBuffer, strlen(encryptedBuffer), 0) < 0)
-        error("ERROR writing to socket");
+        error("SERVER: ERROR writing to socket");
 
     close(connectionSocket);
 }
