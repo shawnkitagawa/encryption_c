@@ -26,8 +26,10 @@ void setupAddressStruct(struct sockaddr_in* address, int portNumber) {
 char* encryption(char* message, char* key) {
     int msg_count = 0;
     int key_count = 0;
-    static char result_buffer[MAX_BUFFER_SIZE];
-    memset(result_buffer, '\0', sizeof(result_buffer));
+    size_t msg_len = strlen(message);
+    printf("the msglenght is %zu\n",msg_len);
+    char* result_buffer = malloc(msg_len + 1); 
+    memset(result_buffer, '\0', msg_len + 1);
 
     char encrypt_array[] = {
 
