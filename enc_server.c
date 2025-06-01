@@ -8,6 +8,8 @@
 #include <signal.h>
 #include <sys/wait.h>
 
+#define MAX_BUFFER_SIZE 70000  
+
 void error(const char *msg) {
     perror(msg);
     exit(1);
@@ -24,10 +26,11 @@ void setupAddressStruct(struct sockaddr_in* address, int portNumber) {
 char* encryption(char* message, char* key) {
     int msg_count = 0;
     int key_count = 0;
-    static char result_buffer[256];
+    static char result_buffer[MAX_BUFFER_SIZE];
     memset(result_buffer, '\0', sizeof(result_buffer));
 
     char encrypt_array[] = {
+
         'A','B','C','D','E','F','G','H',
         'I','J','K','L','M','N','O','P',
         'Q','R','S','T','U','V','W','X',
@@ -59,11 +62,11 @@ char* encryption(char* message, char* key) {
 }
 
 void handleClient(int connectionSocket) {
-    char keyBuffer[256], msgBuffer[256], encryptedBuffer[256];
+    char keyBuffer[MAX_BUFFER_SIZE, msgBuffer[MAX_BUFFER_SIZE], encryptedBuffer[MAX_BUFFER_SIZE];
 
-    memset(msgBuffer, '\0', 256);
-    memset(keyBuffer, '\0', 256);
-    memset(encryptedBuffer, '\0', 256);
+    memset(msgBuffer, '\0', MAX_BUFFER_SIZE);
+    memset(keyBuffer, '\0', MAX_BUFFER_SIZE);
+    memset(encryptedBuffer, '\0', MAX_BUFFER_SIZE);
 
     // 1. Handshake check
     char handshake[16];
