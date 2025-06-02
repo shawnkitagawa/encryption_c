@@ -108,13 +108,13 @@ void handleClient(int connectionSocket) {
         error("SERVER: ERROR reading message");
     msgBuffer[msgRead] = '\0'; // Null-terminate
 
-    printf("msgBuffer: \"%s\"\n", msgBuffer);
+    // printf("msgBuffer: \"%s\"\n", msgBuffer);
 
     int keyRead = recv(connectionSocket, keyBuffer, sizeof(keyBuffer) - 1, 0);
     if (keyRead < 0)
         error("SERVER: ERROR reading key");
     keyBuffer[keyRead] = '\0'; 
-    printf("keyBuffer: \"%s\"\n", keyBuffer);
+    // printf("keyBuffer: \"%s\"\n", keyBuffer);
 
     // 4. Encrypt and send result
     // strcpy(encryptedBuffer, encryption(msgBuffer, keyBuffer));
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
                     continue;  // try again
                 }
 
-                printf("Child %d: Handling new connection...\n", getpid());
+                // printf("Child %d: Handling new connection...\n", getpid());
                 handleClient(connectionSocket);
             }
             exit(0);
