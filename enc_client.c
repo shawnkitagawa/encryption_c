@@ -6,6 +6,7 @@
 #include <sys/types.h>  // ssize_t
 #include <unistd.h>
 #include <ctype.h>
+#include <arpa/inet.h>  // htons, htonl
 
 #define MAX_BUFFER_SIZE 1000  
 
@@ -65,6 +66,17 @@ void setupAddressStruct(struct sockaddr_in* address, int portNumber, char* hostn
     memcpy((char*)&address->sin_addr.s_addr,
            hostInfo->h_addr_list[0],
            hostInfo->h_length);
+}
+
+// Helper to send all bytes reliably
+int sendAll(int socketFD, char* buffer, int length) {
+    int totalSent = 0;
+    while (totalSent < length) {
+        int sent = send(socketFD, buffer + totalSent, length - totalSent, 0);
+        if (sent <= 0) return -1;
+        totalSent += sent;
+    }
+    return totalSent;
 }
 
 int main(int argc, char *argv[]) {
@@ -137,29 +149,34 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    // Send plaintext
-    memset(buffer, '\0', sizeof(buffer));
-    strcpy(buffer, plaintextBuffer);
-    charsWritten = send(socketFD, buffer, strlen(buffer), 0);
-    if (charsWritten < 0) {
-        error("CLIENT: ERROR writing plaintext to socket");
+    // Send plaintext length then plaintext
+    uint32_t plaintextLen = strlen(plaintextBuffer);
+    uint32_t netPlaintextLen = htonl(plaintextLen);
+
+    if (sendAll(socketFD, (char*)&netPlaintextLen, sizeof(netPlaintextLen)) < 0) {
+        error("CLIENT: ERROR sending plaintext length");
+    }
+    if (sendAll(socketFD, plaintextBuffer, plaintextLen) < 0) {
+        error("CLIENT: ERROR sending plaintext");
     }
 
-    // Send key
-    memset(buffer, '\0', sizeof(buffer));
-    strcpy(buffer, keyBuffer);
-    charsWritten = send(socketFD, buffer, strlen(buffer), 0);
-    if (charsWritten < 0) {
-        error("CLIENT: ERROR writing key to socket");
-    }
+    // Send key length then key
+    uint32_t keyLen = strlen(keyBuffer);
+    uint32_t netKeyLen = htonl(keyLen);
 
+    if (sendAll(socketFD, (char*)&netKeyLen, sizeof(netKeyLen)) < 0) {
+        error("CLIENT: ERROR sending key length");
+    }
+    if (sendAll(socketFD, keyBuffer, keyLen) < 0) {
+        error("CLIENT: ERROR sending key");
+    }
 
     memset(buffer, '\0', sizeof(buffer));
 
     // Receive ciphertext: read exactly plaintext length bytes
     int totalReceived = 0;
-    int expectedBytes = strlen(plaintextBuffer);  // ciphertext length expected
-    // printf("expectedBytes: %d\n", expectedBytes);
+    int expectedBytes = plaintextLen;  // ciphertext length expected
+
     while (totalReceived < expectedBytes) {
         charsRead = recv(socketFD, buffer, sizeof(buffer), 0);
         if (charsRead < 0) {
@@ -171,9 +188,6 @@ int main(int argc, char *argv[]) {
         fflush(stdout);
         totalReceived += charsRead;
     }
-
-    // printf("Buffer: \"%s\"\n", buffer);
-
 
     if (totalReceived < expectedBytes) {
         fprintf(stderr, "Warning: connection closed before receiving full ciphertext\n");
