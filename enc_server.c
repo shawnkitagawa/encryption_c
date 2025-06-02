@@ -8,7 +8,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 
-#define MAX_BUFFER_SIZE 70000  
+#define MAX_BUFFER_SIZE 1000 
 
 void error(const char *msg) {
     perror(msg);
