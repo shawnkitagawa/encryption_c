@@ -7,8 +7,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
-#include <arpa/inet.h> 
-
 
 #define MAX_BUFFER_SIZE 1000 
 
@@ -70,13 +68,21 @@ char* encryption(char* message, char* key) {
     return result_buffer;
 }
 
+
 void handleClient(int connectionSocket) {
+    char keyBuffer[MAX_BUFFER_SIZE], msgBuffer[MAX_BUFFER_SIZE], encryptedBuffer[MAX_BUFFER_SIZE];
+
+    memset(msgBuffer, '\0', MAX_BUFFER_SIZE);
+    memset(keyBuffer, '\0', MAX_BUFFER_SIZE);
+    memset(encryptedBuffer, '\0', MAX_BUFFER_SIZE);
+
+    // 1. Handshake check
     char handshake[16];
     memset(handshake, '\0', sizeof(handshake));
 
-    // 1. Receive handshake
-    ssize_t n = recv(connectionSocket, handshake, sizeof(handshake) - 1, 0);
-    if (n < 0) error("SERVER: ERROR reading handshake");
+    if (recv(connectionSocket, handshake, sizeof(handshake) - 1, 0) < 0) {
+        error("SERVER: ERROR reading handshake");
+    }
 
     if (strcmp(handshake, "enc_client") != 0) {
         fprintf(stderr, "SERVER: Rejected connection from unknown client\n");
@@ -86,77 +92,44 @@ void handleClient(int connectionSocket) {
 
     // 2. Send handshake response
     const char* handshakeResponse = "enc_server";
-    ssize_t sent = 0;
-    ssize_t len = strlen(handshakeResponse);
-    while (sent < len) {
-        ssize_t s = send(connectionSocket, handshakeResponse + sent, len - sent, 0);
-        if (s <= 0) error("SERVER: ERROR sending handshake response");
-        sent += s;
+    if (send(connectionSocket, handshakeResponse, strlen(handshakeResponse), 0) < 0) {
+        error("SERVER: ERROR sending handshake response");
     }
 
-    // 3. Receive the length of the message (assume client sends an int first, network byte order)
-    uint32_t msg_len_net;
-    ssize_t r = 0, total = 0;
-    while (total < sizeof(msg_len_net)) {
-        r = recv(connectionSocket, ((char*)&msg_len_net) + total, sizeof(msg_len_net) - total, 0);
-        if (r <= 0) error("SERVER: ERROR reading message length");
-        total += r;
-    }
-    uint32_t msg_len = ntohl(msg_len_net);
-    if (msg_len > MAX_BUFFER_SIZE - 1) {
-        fprintf(stderr, "SERVER: Message too long\n");
-        close(connectionSocket);
-        exit(1);
-    }
+    // // 3. Receive message and key
+    // if (recv(connectionSocket, msgBuffer, 255, 0) < 0)
+    //     error("SERVER: ERROR reading message");
 
-    // 4. Receive message fully
-    char msgBuffer[MAX_BUFFER_SIZE];
-    total = 0;
-    while (total < msg_len) {
-        r = recv(connectionSocket, msgBuffer + total, msg_len - total, 0);
-        if (r <= 0) error("SERVER: ERROR reading message");
-        total += r;
-    }
-    msgBuffer[msg_len] = '\0'; // null terminate
+    // if (recv(connectionSocket, keyBuffer, 255, 0) < 0)
+    //     error("SERVER: ERROR reading key");
 
-    // 5. Receive key length similarly (assuming same length as message)
-    uint32_t key_len_net;
-    total = 0;
-    while (total < sizeof(key_len_net)) {
-        r = recv(connectionSocket, ((char*)&key_len_net) + total, sizeof(key_len_net) - total, 0);
-        if (r <= 0) error("SERVER: ERROR reading key length");
-        total += r;
-    }
-    uint32_t key_len = ntohl(key_len_net);
-    if (key_len != msg_len) {
-        fprintf(stderr, "SERVER: Key length mismatch\n");
-        close(connectionSocket);
-        exit(1);
-    }
+    int msgRead = recv(connectionSocket, msgBuffer, sizeof(msgBuffer) - 1, 0);
+    if (msgRead < 0)
+        error("SERVER: ERROR reading message");
+    msgBuffer[msgRead] = '\0'; // Null-terminate
 
-    // 6. Receive key fully
-    char keyBuffer[MAX_BUFFER_SIZE];
-    total = 0;
-    while (total < key_len) {
-        r = recv(connectionSocket, keyBuffer + total, key_len - total, 0);
-        if (r <= 0) error("SERVER: ERROR reading key");
-        total += r;
-    }
-    keyBuffer[key_len] = '\0';
+    // printf("msgBuffer: \"%s\"\n", msgBuffer);
 
-    // 7. Encrypt
-    char* encrypted = encryption(msgBuffer, keyBuffer);
+    int keyRead = recv(connectionSocket, keyBuffer, sizeof(keyBuffer) - 1, 0);
+    if (keyRead < 0)
+        error("SERVER: ERROR reading key");
+    keyBuffer[keyRead] = '\0'; 
+    // printf("keyBuffer: \"%s\"\n", keyBuffer);
+
+    // 4. Encrypt and send result
+    // strcpy(encryptedBuffer, encryption(msgBuffer, keyBuffer));
+    // strcat(encryptedBuffer, "\n");
+
+    // if (send(connectionSocket, encryptedBuffer, strlen(encryptedBuffer), 0) < 0)
+    //     error("SERVER: ERROR writing to socket");
+
+    char* encrypted = encryption(msgBuffer, keyBuffer);  // Returns a null-terminated string
     int encryptedLength = strlen(encrypted);
+    
 
-    // 8. Send encrypted data fully
-    sent = 0;
-    while (sent < encryptedLength) {
-        ssize_t s = send(connectionSocket, encrypted + sent, encryptedLength - sent, 0);
-        if (s <= 0) error("SERVER: ERROR writing to socket");
-        sent += s;
-    }
+    if (send(connectionSocket, encrypted, encryptedLength, 0) < 0)
+    error("SERVER: ERROR writing to socket");
 
-    free(encrypted);
     close(connectionSocket);
 }
 
