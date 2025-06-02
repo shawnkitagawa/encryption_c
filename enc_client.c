@@ -44,7 +44,7 @@ void readFileToBuffer(const char* filename, char* buffer, size_t bufferSize) {
 
 int validateText(const char *text) {
     for (int i = 0; text[i] != '\0'; i++) {
-        if (text[i] != ' ' && (text[i] < 'A' || text[i] > 'Z')) {
+        if (text[i] != ' ' && text[i] != '\n' && (text[i] < 'A' || text[i] > 'Z')) {
             return 0;
         }
     }
@@ -153,21 +153,31 @@ int main(int argc, char *argv[]) {
         error("CLIENT: ERROR writing key to socket");
     }
 
+
     memset(buffer, '\0', sizeof(buffer));
 
-    charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
-    if (charsRead < 0) {
-        error("CLIENT: ERROR reading from socket");
+    // Receive ciphertext: read exactly plaintext length bytes
+    int totalReceived = 0;
+    int expectedBytes = strlen(plaintextBuffer);  // ciphertext length expected
+    // printf("expectedBytes: %d\n", expectedBytes);
+    while (totalReceived < expectedBytes) {
+        charsRead = recv(socketFD, buffer, sizeof(buffer), 0);
+        if (charsRead < 0) {
+            error("CLIENT: ERROR reading from socket");
+        } else if (charsRead == 0) {
+            break; // connection closed early
+        }
+        fwrite(buffer, 1, charsRead, stdout);
+        fflush(stdout);
+        totalReceived += charsRead;
     }
 
-    // Make sure it's null-terminated exactly at charsRead
-    buffer[charsRead] = '\0';
-
-    // Print only what was received
-    printf("%.*s", (int)charsRead, buffer);
+    // printf("Buffer: \"%s\"\n", buffer);
 
 
-
+    if (totalReceived < expectedBytes) {
+        fprintf(stderr, "Warning: connection closed before receiving full ciphertext\n");
+    }
     
     close(socketFD);
 

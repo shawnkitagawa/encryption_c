@@ -24,46 +24,50 @@ void setupAddressStruct(struct sockaddr_in* address, int portNumber) {
 
 
 char* encryption(char* message, char* key) {
-    int msg_count = 0;
-    int key_count = 0;
     size_t msg_len = strlen(message);
-    printf("the msglenght is %zu\n",msg_len);
-    char* result_buffer = malloc(msg_len + 2); 
-    memset(result_buffer, '\0', msg_len + 1);
+    char* result_buffer = malloc(msg_len + 2);  // +1 for newline, +1 for '\0'
+    if (!result_buffer) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+    memset(result_buffer, '\0', msg_len + 2);
 
     char encrypt_array[] = {
-
         'A','B','C','D','E','F','G','H',
         'I','J','K','L','M','N','O','P',
         'Q','R','S','T','U','V','W','X',
         'Y','Z',' '
     };
-
     int arr_len = 27;
 
-    while (msg_count < strlen(message)) {
+    for (size_t i = 0; i < msg_len; i++) {
         int total = 0;
-        for (int i = 0; i < arr_len; i++) {
-            if (encrypt_array[i] == message[msg_count]) {
-                total += i;
+
+        // Find index of message char in encrypt_array
+        for (int j = 0; j < arr_len; j++) {
+            if (encrypt_array[j] == message[i]) {
+                total += j;
                 break;
             }
         }
-        for (int i = 0; i < arr_len; i++) {
-            if (encrypt_array[i] == key[key_count]) {
-                total += i;
+
+        // Find index of key char in encrypt_array
+        for (int j = 0; j < arr_len; j++) {
+            if (encrypt_array[j] == key[i]) {
+                total += j;
                 break;
             }
         }
-        result_buffer[msg_count] = encrypt_array[total % 27];
-        msg_count++;
-        key_count++;
+
+        result_buffer[i] = encrypt_array[total % arr_len];
     }
-    printf("the msgcount is %d\n",msg_count);
-    result_buffer[msg_count + 1] = '\n';
-    result_buffer[msg_count + 2] = '\0';
+
+    result_buffer[msg_len] = '\n';
+    result_buffer[msg_len + 1] = '\0';
+
     return result_buffer;
 }
+
 
 void handleClient(int connectionSocket) {
     char keyBuffer[MAX_BUFFER_SIZE], msgBuffer[MAX_BUFFER_SIZE], encryptedBuffer[MAX_BUFFER_SIZE];
@@ -104,10 +108,13 @@ void handleClient(int connectionSocket) {
         error("SERVER: ERROR reading message");
     msgBuffer[msgRead] = '\0'; // Null-terminate
 
+    printf("msgBuffer: \"%s\"\n", msgBuffer);
+
     int keyRead = recv(connectionSocket, keyBuffer, sizeof(keyBuffer) - 1, 0);
     if (keyRead < 0)
         error("SERVER: ERROR reading key");
     keyBuffer[keyRead] = '\0'; 
+    printf("keyBuffer: \"%s\"\n", keyBuffer);
 
     // 4. Encrypt and send result
     // strcpy(encryptedBuffer, encryption(msgBuffer, keyBuffer));
@@ -118,6 +125,7 @@ void handleClient(int connectionSocket) {
 
     char* encrypted = encryption(msgBuffer, keyBuffer);  // Returns a null-terminated string
     int encryptedLength = strlen(encrypted);
+    
 
     if (send(connectionSocket, encrypted, encryptedLength, 0) < 0)
     error("SERVER: ERROR writing to socket");

@@ -21,49 +21,47 @@ void setupAddressStruct(struct sockaddr_in* address, int portNumber) {
 }
 
 
-char* decryption(char* ciphertext, char* key) {
-    int count = 0;
-    int key_count = 0;
-    static char result_buffer[256];
-    memset(result_buffer, '\0', sizeof(result_buffer));
+char* decryption(char* message, char* key) {
+    size_t msg_len = strlen(message);
+    char* result_buffer = malloc(msg_len + 2);
+    memset(result_buffer, '\0', msg_len + 2);
 
-    char dencrypt_array[] = {
+    char encrypt_array[] = {
         'A','B','C','D','E','F','G','H',
         'I','J','K','L','M','N','O','P',
         'Q','R','S','T','U','V','W','X',
         'Y','Z',' '
     };
-
     int arr_len = 27;
 
-    while (count < strlen(ciphertext)) { 
-        int total = 0;
-        int c_index = 0;
-        int k_index = 0;
+    for (size_t i = 0; i < msg_len; i++) {
+        int cipher_index = -1;
+        int key_index = -1;
 
-        for (int i = 0; i < arr_len; i++) {
-            if (dencrypt_array[i] == ciphertext[count]) {
-                c_index = i;
-                break;
+        for (int j = 0; j < arr_len; j++) {
+            if (encrypt_array[j] == message[i]) {
+                cipher_index = j;
             }
-        }
-        for (int i = 0; i < arr_len; i++) {
-            if (dencrypt_array[i] == key[key_count]) {
-                k_index = i;
-                break;
+            if (encrypt_array[j] == key[i]) {
+                key_index = j;
             }
         }
 
-        total = c_index - k_index;
-        if (total < 0) total += arr_len;
-
-        result_buffer[count] = dencrypt_array[total % arr_len];
-        count++;
-        key_count++;
+        if (cipher_index == -1 || key_index == -1) {
+            // Handle invalid chars here (optional)
+            result_buffer[i] = message[i];  // Or just skip/change
+        } else {
+            int decrypted_index = (cipher_index - key_index + arr_len) % arr_len;
+            result_buffer[i] = encrypt_array[decrypted_index];
+        }
     }
-    result_buffer[count] = '\0';
+
+    result_buffer[msg_len] = '\n';
+    result_buffer[msg_len + 1] = '\0';
+
     return result_buffer;
 }
+
 
 void handleClient(int connectionSocket) {
     char keyBuffer[256], cipherBuffer[256], decryptedBuffer[256];
@@ -101,7 +99,7 @@ void handleClient(int connectionSocket) {
 
     // 4. Encrypt and send result
     strcpy(decryptedBuffer, decryption(cipherBuffer, keyBuffer));
-    strcat(decryptedBuffer, "\n");
+    // strcat(decryptedBuffer, "\n");
 
     if (send(connectionSocket, decryptedBuffer, strlen(decryptedBuffer), 0) < 0)
         error("SERVER: ERROR writing to socket");
